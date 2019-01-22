@@ -36,11 +36,10 @@ class Actor {
     this.size = size;
     this.speed = speed;
     this.id = Math.random();
-    Object.defineProperty(this, 'type', {
-      configurable: true,
-      writable: false,
-      value: 'actor'
-    })
+  }
+
+  get type() {
+    return 'actor';
   }
 
   act() { }
@@ -72,11 +71,12 @@ class Actor {
     }
 
     let equal = this.left === actor.left && this.top === actor.top && this.right === actor.right && this.bottom === actor.bottom;
-    let fullInObject = this.left < actor.left && this.bottom > actor.bottom && this.right > actor.right;
+    //let fullInObject = this.left < actor.left && this.bottom > actor.bottom && this.right > actor.right;
     let inObject = this.left < actor.right && this.right > actor.left && this.top < actor.bottom && this.bottom > actor.top
 
-    return equal || fullInObject || inObject
+    return equal || inObject
   }
+
 }
 
 
@@ -111,10 +111,12 @@ movePlayer(5, -5);
 items.forEach(status);
 
 class Level {
-  constructor(grid = [], actors) {
+  constructor(grid = [], actors = []) {
     this.grid = grid;
     this.actors = actors;
-    //this.player
+    this.player = this.actors.find(function (el, i) {
+      return el.type === 'player';
+    })
     this.height = this.grid.length;
 
     Object.defineProperty(this, "width", {
@@ -156,32 +158,31 @@ class Level {
   }
 
   obstacleAt(vectorPos, vectorSize) {
-    if (!vectorPos instanceof Vector || !vectorSize instanceof Vector) {
+    if (!(vectorPos instanceof Vector) || !(vectorSize instanceof Vector)) {
       throw new Error('Не принадлежит классу Vector')
     }
 
     const left = Math.floor(vectorPos.x);
     const top = Math.floor(vectorPos.y);
-    const right = Math.floor(vectorPos.x + vectorSize.x);
-    const bottom = Math.floor(vectorPos.y + vectorSize.y);
+    const right = Math.ceil(vectorPos.x + vectorSize.x);
+    const bottom = Math.ceil(vectorPos.y + vectorSize.y);
 
     if (left < 0 || right > this.width || top < 0) {
       return 'wall'
     } else if (bottom > this.height) {
       return 'lava'
     }
-
-    for (let x = left; x <= right; x++) {
-      for (let y = top; y <= bottom; y++) {
-        if (this.grid[x][y] === 'wall') {
+   
+    for (let y = top; y < bottom; y++) {
+      for (let x = left; x < right; x++) {
+        if (this.grid[y][x] === 'wall') {
           return 'wall'
-        } else if (this.grid[x][y] === 'lava') {
+        } else if (this.grid[y][x] === 'lava') {
           return 'lava'
-        } else {
-          return undefined
         }
       }
     }
+    return undefined
   }
 
   removeActor(actor) {
@@ -194,15 +195,17 @@ class Level {
 
   noMoreActors(type) {
 
-    if (this.actors === undefined || type === undefined) {
+    if (!this.actors || !type) {
       return true
     }
 
     for (let item of this.actors) {
+      // console.log(111111, item.type, type)
       if (item.type === type) {
         return false
       }
-    } return true
+    }
+    return true
   }
 
   playerTouched(type, actor) {
@@ -226,7 +229,6 @@ class Level {
   }
 }
 
-
 const grid = [
   [undefined, undefined],
   ['wall', 'wall'],
@@ -243,11 +245,9 @@ MyCoin.constructor = MyCoin;
 
 const goldCoin = new MyCoin('Золото');
 const bronzeCoin = new MyCoin('Бронза');
-//const player = new Actor();
+const player1 = new Actor();
 const fireball = new Actor();
-const level = new Level(grid, [goldCoin, bronzeCoin, player, fireball]);
-
-
+const level = new Level(grid, [goldCoin, bronzeCoin, player1, fireball]);
 
 level.playerTouched('coin', goldCoin);
 level.playerTouched('coin', bronzeCoin);
@@ -256,7 +256,6 @@ if (level.noMoreActors('coin')) {
   console.log('Все монеты собраны');
   console.log(`Статус игры: ${level.status}`);
 }
-
 
 level.obstacleAt(new Vector(1, 1), player.size)
 const obstacle = level.obstacleAt(new Vector(1, 1), player.size);
@@ -494,36 +493,9 @@ class LevelParser {
   }
 
   parse(plan) {
-    let t = new Level(this.createGrid(plan), this.createActors(plan))
-    return t
+    return new Level(this.createGrid(plan), this.createActors(plan))
   }
 }
-
-// const plan = [
-//   ' @ ',
-//   'x!x'
-// ];
-
-
-// const parser = new LevelParser(lexicon);
-// const actors = parser.createActors([
-//   "                       ",
-//   "                       ",
-//   "                       ",
-//   "                       ",
-//   "  |xxx       w         ",
-//   "  o                 o  ",
-//   "  x               = x  ",
-//   "  x          o o    x  ",
-//   "  x  @   @*  xxxxx  x  ",
-//   "  xxxxx             x  ",
-//   "      x!!!!!!!!!!!!!x  ",
-//   "      xxxxxxxxxxxxxxx  ",
-//   "                       "
-// ]);
-
-// console.log(actors)
-// console.log(parser.parse(plan))
 
 const plan = [
   ' @ ',
@@ -541,3 +513,115 @@ level1.grid.forEach((line, y) => {
 });
 
 level1.actors.forEach(actor => console.log(`(${actor.pos.x}:${actor.pos.y}) ${actor.type}`));
+console.log(level1)
+
+const schemas = [
+  [
+    //"     v                 ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "  |xxx       w         ",
+    "  o                 o  ",
+    "  x               = x  ",
+    "  x          o o    x  ",
+    "  x  @    *  xxxxx  x  ",
+    "  xxxxx             x  ",
+    "      x!!!!!!!!!!!!!x  ",
+    "      xxxxxxxxxxxxxxx  ",
+    "                       "
+  ],
+  [
+    "     v                 ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "  |                    ",
+    "  o                 o  ",
+    "  x               = x  ",
+    "  x          o o    x  ",
+    "  x  @       xxxxx  x  ",
+    "  xxxxx             x  ",
+    "      x!!!!!!!!!!!!!x  ",
+    "      xxxxxxxxxxxxxxx  ",
+    "                       "
+  ],
+  [
+    "        |           |  ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "                       ",
+    "     |                 ",
+    "                       ",
+    "         =      |      ",
+    " @ |  o            o   ",
+    "xxxxxxxxx!!!!!!!xxxxxxx",
+    "                       "
+  ],
+  [
+    "                       ",
+    "                       ",
+    "                       ",
+    "    o                  ",
+    "    x      | x!!x=     ",
+    "         x             ",
+    "                      x",
+    "                       ",
+    "                       ",
+    "                       ",
+    "               xxx     ",
+    "                       ",
+    "                       ",
+    "       xxx  |          ",
+    "                       ",
+    " @                     ",
+    "xxx                    ",
+    "                       "
+  ], 
+  [
+    "   v         v",
+    "              ",
+    "         !o!  ",
+    "              ",
+    "              ",
+    "              ",
+    "              ",
+    "         xxx  ",
+    "          o   ",
+    "        =     ",
+    "  @           ",
+    "  xxxx        ",
+    "  |           ",
+    "      xxx    x",
+    "              ",
+    "          !   ",
+    "              ",
+    "              ",
+    " o       x    ",
+    " x      x     ",
+    "       x      ",
+    "      x       ",
+    "   xx         ",
+    "              "
+  ]
+]
+
+
+const actorDict1 = {
+  '@': Player,
+  'o': Coin,
+  '=': HorizontalFireball,
+  '|': VerticalFireball,
+  'v': FireRain
+}
+
+const parser1 = new LevelParser(actorDict1);
+runGame(schemas, parser1, DOMDisplay)
+  .then(() => console.log('Вы выиграли приз!'));
